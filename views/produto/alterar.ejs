@@ -1,0 +1,163 @@
+﻿
+<div class="row">
+	<div class="col-md-8 col-md-offset-2 col-lg-6 col-lg-offset-3">
+		<form id="form" class="panel panel-default" action="#">
+			<div class="panel-heading">Informações Básicas do Produto</div>
+			<div class="panel-body no-bottom">
+				<input type="hidden" id="id" name="id" value="<%=(item ? item.id : 0) %>" />
+				<div class="form-group">
+					<label for="nome">Nome</label>
+					<input id="nome" name="nome" maxlength="100" class="form-control" type="text" spellcheck="true" value="<%=(item ? item.nome : '') %>" />
+				</div>
+				<div class="form-group">
+					<label for="descricao">Descrição</label>
+					<input id="descricao" name="descricao" maxlength="200" class="form-control" type="text" spellcheck="true" value="<%=(item ? item.descricao : '') %>" />
+				</div>
+				<div class="form-group">
+					<label for="valor">Valor (R$)</label>
+					<input id="valor" name="valor" maxlength="10" type="text" class="form-control" spellcheck="false" placeholder="0,00" value="<%=(item ? item.valor.toString().replace('.', ',') : '') %>" />
+				</div>
+				<div class="form-group">
+					<label for="miniatura">Miniatura <small>(Máx <%- tamanhoMaximoMiniaturaEmKiB %> KB)</small></label>
+					<input id="miniatura" name="miniatura" class="form-control" type="file" accept="image/jpeg" />
+				</div>
+				<div class="form-group">
+					<label for="imagem">Imagem <small>(Máx <%- tamanhoMaximoImagemEmKiB %> KB)</small></label>
+					<input id="imagem" name="imagem" class="form-control" type="file" accept="image/jpeg" />
+				</div>
+			</div>
+			<div class="panel-footer">
+				<input value="<%=(item ? 'Salvar Alterações' : 'Criar Produto') %>" class="btn btn-primary btn-lg btn-block" type="submit" />
+			</div>
+		</form>
+	</div>
+</div>
+
+<%- contentFor("scripts") %>
+<script type="text/javascript">
+	//<![CDATA[
+	"use strict";
+
+	//$("#valor").mask("#0,00", { reverse: true });
+
+	var preparandoImagem = false;
+
+	$("#form").validate({
+		rules: {
+			nome: {
+				required: true,
+				minlength: 3,
+				maxlength: 100
+			},
+			descricao: {
+				maxlength: 200
+			},
+			valor: {
+				required: true,
+				dinheiro: true
+			},
+			miniatura: {
+				required: <%- (item ? "false" : "true") %>,
+				suporteArquivoAvancado: true,
+				tamanhoArquivoMinimoBytes: 128,
+				tamanhoArquivoMaximoKiB: <%- tamanhoMaximoMiniaturaEmKiB %>,
+				extensaoArquivo: [".jpg", ".jpeg"]
+			},
+			imagem: {
+				required: <%- (item ? "false" : "true") %>,
+				suporteArquivoAvancado: true,
+				tamanhoArquivoMinimoBytes: 128,
+				tamanhoArquivoMaximoKiB: <%- tamanhoMaximoImagemEmKiB %>,
+				extensaoArquivo: [".jpg", ".jpeg"]
+			}
+		},
+
+		submitHandler: function (form) {
+			if (JsonWebApi.active || preparandoImagem)
+				return;
+
+			var formData = new FormData(form),
+				miniatura = document.getElementById("miniatura"),
+				imagem = document.getElementById("imagem");
+
+			function erroImagem() {
+				preparandoImagem = false;
+				Notification.error("Ocorreu um erro durante o processamento da imagem " + emoji.sad, true);
+			}
+
+			function prepararImagem(indice, arquivo) {
+				preparandoImagem = true;
+
+				var reader = new FileReader();
+				reader.onload = function () {
+					var image = new Image();
+					image.onload = function () {
+						var w = image.width, h = image.height;
+
+						preparandoImagem = false;
+
+						if (w < 50 || h < 50) {
+							Notification.error("A imagem é muito pequena (largura e altura devem ser pelo menos 50 pixels) " + emoji.sad, true);
+							return;
+						}
+
+						if (w > 2000 || h > 2000) {
+							Notification.error("A imagem é muito grande (largura e altura devem ser menores do que 2000 pixels) " + emoji.sad, true);
+							return;
+						}
+
+						if (indice === 0) {
+							if (imagem.files && imagem.files[0])
+								prepararImagem(1, imagem.files[0]);
+							else
+								terminar();
+						} else {
+							terminar();
+						}
+					};
+					image.onerror = erroImagem;
+					image.src = reader.result;
+				};
+				reader.onerror = erroImagem;
+				reader.readAsDataURL(arquivo);
+			}
+
+			function terminar() {
+				//<% if (item) { %>
+
+				JsonWebApi.postFormData("<%- root %>/api/produto/alterar", formData, function (response) {
+					if (response.success) {
+						miniatura.value = "";
+						imagem.value = "";
+						Notification.success("Produto alterado com sucesso! " + emoji.happy);
+					} else {
+						Notification.error(response.value, true);
+					}
+				});
+
+				//<% } else { %>
+
+				JsonWebApi.postFormData("<%- root %>/api/produto/criar", formData, function (response) {
+					if (response.success) {
+						resetForm("#form");
+						Notification.success("Produto criado com sucesso! " + emoji.happy);
+					} else {
+						Notification.error(response.value, true);
+					}
+				});
+
+				//<% } %>
+			}
+
+			Notification.wait();
+
+			if (miniatura.files && miniatura.files[0])
+				prepararImagem(0, miniatura.files[0]);
+			else if (imagem.files && imagem.files[0])
+				prepararImagem(1, imagem.files[0]);
+			else
+				terminar();
+		}
+	});
+	//]]>
+</script>

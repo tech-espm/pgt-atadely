@@ -1,0 +1,93 @@
+﻿
+<div class="row">
+	<div class="col-lg-12">
+		<div class="panel panel-default">
+			<div class="panel-body dataTable_wrapper">
+				<table class="table table-striped table-hover" id="tabela"></table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="modalExcluir">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">Oops...</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					Tem certeza que deseja excluir o produto <span id="lblNome"></span>? Esta operação <b class="col-h">NÃO</b> pode ser desfeita!
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-danger" onclick="excluir()"><i class="fa fa-check"></i>Excluir</button>
+				<button type="button" class="btn btn-outline btn-default" data-dismiss="modal"><i class="fa fa-times"></i>Cancelar</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<%- contentFor("scripts") %>
+<script type="text/javascript">
+	//<![CDATA[
+	"use strict";
+
+	var tabela = prepareDataTable("tabela", {
+		order: [[1, "asc"]],
+		deferRender: true,
+		columns: [
+			{ title: "", "class": "col-min", searchable: false, orderable: false, data: null, render: function (v, type, row) { return "<a target=\"_blank\" title=\"Editar\" href=\"<%- root %>/produto/alterar?id=" + row.id + "\" class=\"btn btn-outline btn-primary\"><i class=\"fa fa-nomargin fa-edit\"></i></a> <button title=\"Excluir\" type=\"button\" data-excluir=\"1\" class=\"btn btn-outline btn-danger\"><i class=\"fa fa-nomargin fa-times\"></i></button>"; } },
+			{ title: "Id", "class": "col-min", "type": "num", data: "id" },
+			{ title: "Nome", render: encode, data: "nome" },
+			{ title: "Valor (R$)", "class": "col-min text-right", "type": "customnumberstr", data: "valor", render: function (v, type, row) { return v.toString().replace(".", ","); } },
+			{ title: "Descrição", render: encode, data: "descricao" },
+			{ title: "Miniatura", "class": "col-min text-center", searchable: false, orderable: false, data: null, render: function (v, type, row) { return "<img alt=\"Miniatura\" width=\"50\" src=\"<%- root %>/<%- caminhoRelativoExternoMiniatura %>/" + row.id + ".<%- extensaoMiniatura %>?" + row.versao + "\" />"; } },
+			{ title: "Imagem", "class": "col-min text-center", searchable: false, orderable: false, data: null, render: function (v, type, row) { return "<a target=\"_blank\" title=\"Imagem do produto\" href=\"<%- root %>/<%- caminhoRelativoExternoImagem %>/" + row.id + ".<%- extensaoImagem %>?" + row.versao + "\" class=\"btn btn-outline btn-default\"><i class=\"fa fa-nomargin fa-image\"></i></a>"; } }
+		],
+		data: <%- lista %>,
+		export: { title: "Produtos" }
+	});
+
+	var trClicada;
+
+	$("#tabela").on("click", "tbody button", function () {
+		if (JsonWebApi.active)
+			return;
+
+		var produto = tabela.row(trClicada = this.parentNode.parentNode).data();
+
+		if (this.getAttribute("data-excluir")) {
+			$("#lblNome").text(produto.nome);
+
+			$("#modalExcluir").modal({
+				backdrop: "static",
+				keyboard: true
+			});
+		}
+	});
+
+	function excluir() {
+		if (JsonWebApi.active || !trClicada)
+			return;
+
+		$("#modalExcluir").modal("hide");
+
+		var produto = tabela.row(trClicada).data();
+
+		Notification.wait();
+
+		JsonWebApi.get("<%- root %>/api/produto/excluir", function (response) {
+			if (response.success) {
+				Notification.success("Produto excluído com sucesso! " + emoji.happy);
+				tabela.row(trClicada).remove().draw();
+			} else {
+				Notification.error(response.value, true);
+			}
+			trClicada = null;
+		}, "id", produto.id);
+	}
+
+	//]]>
+</script>
