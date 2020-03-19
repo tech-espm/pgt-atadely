@@ -1,8 +1,69 @@
-﻿<div style="max-width: 400px; margin: 0 auto; padding: 10% 15px;">
+﻿<div style="max-width: 800px; margin: 0 auto; padding: 50px 15px;">
 	<div class="panel panel-default no-margin-bottom">
 		<div class="panel-body">
-			<h1>Um site!</h1>
-			<a href="<%- root %>/login">Login</a>
+			<div class="text-right"><a href="<%- root %>/login"><i class="fa fa-lock"></i>Login</a></div>
+
+			<h1>Atadely</h1>
+
+			<hr />
+
+			<section>
+				<h1>Nossos produtos</h1>
+
+				<div class="row">
+					<% for (let p of produtos) { %>
+						<div class="col-xs-6 col-sm-4">
+							<div class="produto">
+								<h2><%= p.nome %></h2>
+								<img alt="Foto do produto" src="<%- root %>/<%- caminhoRelativoExternoMiniatura %>/<%- p.id %>.<%- extensaoMiniatura %>?<%- p.versao %>" />
+								<p>
+									<small>R$ <%= p.valor.toFixed(2).replace(".", ",") %></small>
+									<%= (p.descricao || "\u00a0") %>
+								</p>
+							</div>
+						</div>
+					<% } %>
+
+				</div>
+
+			</section>
 		</div>
 	</div>
 </div>
+
+<%- contentFor("styles") %>
+<style type="text/css">
+	h1 {
+		text-align: center;
+	}
+
+	.produto {
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+		border-radius: 5px;
+		background-color: #fff;
+		margin: 15px 0 0;
+	}
+
+	.produto h2 {
+		margin: 0;
+		padding: 8px 0 16px;
+		text-align: center;
+	}
+
+	.produto img {
+		display: block;
+		width: 100%;
+		max-width: 200px;
+		margin: 0 auto;
+	}
+
+	.produto p {
+		margin: 0;
+		padding: 0 8px 4px;
+	}
+
+	.produto small {
+		float: right;
+
+	}
+</style>

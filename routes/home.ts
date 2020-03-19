@@ -1,12 +1,21 @@
 ﻿import express = require("express");
 import wrap = require("express-async-error-wrapper");
+import Produto = require("../models/produto");
 import Usuario = require("../models/usuario");
 import appsettings = require("../appsettings");
 
 const router = express.Router();
 
 router.all("/", wrap(async (req: express.Request, res: express.Response) => {
-	res.render("home/index", { layout: "layout-externo" });
+	// Isto aqui é a "home pública" do site. Não precisa estar logado para ver.
+	// Isto é só uma ideia. Com certeza, o ideal é *não* trazer todos os produtos,
+	// mas apenas alguns mais relevantes!
+	res.render("home/index", {
+		layout: "layout-externo",
+		caminhoRelativoExternoMiniatura: Produto.caminhoRelativoExternoMiniatura,
+		extensaoMiniatura: Produto.extensaoMiniatura,
+		produtos: await Produto.listar()
+	});
 }));
 
 router.all("/login", wrap(async (req: express.Request, res: express.Response) => {
